@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TopEnergy SGS | Cooperativa de Energia Solar</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌞 TopEnergy SGS</h1>
+            <p>Cooperativa de energia solar — Sobral/CE</p>
+        </header>
+
+        <!-- Simulador -->
+        <div class="card">
+            <h2>📊 Simule sua economia</h2>
+            <div class="form-group">
+                <label>Área do telhado (m²)</label>
+                <input type="number" id="area" placeholder="Ex: 50" value="50">
+                <button id="simularBtn">Simular agora</button>
+            </div>
+            <div id="resultado" class="resultado" style="display:none;"></div>
+        </div>
+
+        <!-- Login -->
+        <div class="card" id="loginCard">
+            <h2>🔐 Acesse sua conta</h2>
+            <input type="email" id="loginEmail" placeholder="E-mail">
+            <input type="password" id="loginPassword" placeholder="Senha">
+            <button id="loginBtn">Entrar</button>
+            <p>Ainda não tem conta? <a href="#" id="showRegister">Cadastre-se</a></p>
+            <div id="loginMsg" class="msg"></div>
+        </div>
+
+        <!-- Cadastro -->
+        <div class="card" id="registerCard" style="display:none;">
+            <h2>📝 Cadastre-se</h2>
+            <input type="text" id="regName" placeholder="Nome completo">
+            <input type="text" id="regCpf" placeholder="CPF">
+            <input type="email" id="regEmail" placeholder="E-mail">
+            <input type="password" id="regPassword" placeholder="Senha">
+            <input type="text" id="regPhone" placeholder="WhatsApp">
+            <input type="number" id="regArea" placeholder="Área do telhado (m²)">
+            <button id="registerBtn">Cadastrar</button>
+            <p>Já tem conta? <a href="#" id="showLogin">Faça login</a></p>
+            <div id="registerMsg" class="msg"></div>
+        </div>
+    </div>
+
+    <script>
+        // Simulação
+        document.getElementById('simularBtn').addEventListener('click', async () => {
+            const area = document.getElementById('area').value;
+            if (!area || area <= 0) { alert('Digite uma área válida'); return; }
+            const res = await fetch('/api/simular', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ area: parseFloat(area) })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                const resultadoDiv = document.getElementById('resultado');
+                resultadoDiv.style.display = 'block';
+                resultadoDiv.innerHTML = `
+                    <strong>🔆 Potência estimada:</strong> ${data.potencia} kWp<br>
+                    <strong>⚡ Geração mensal:</strong> ${data.geracao} kWh<br>
+                    <strong>💰 Economia na conta:</strong> R$ ${data.economia}<br>
+                    <strong>✨ Renda extra (CSGS):</strong> R$ ${data.rendaExtra}
+                `;
+            } else alert('Erro: ' + data.error);
+        });
+
+        // Alternar entre login e cadastro
+        document.getElementById('showRegister').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('loginCard').style.display = 'none';
+            document.getElementById('registerCard').style.display = 'block';
+        });
+        document.getElementById('showLogin').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('registerCard').style.display = 'none';
+            document.getElementById('loginCard').style.display = 'block';
+        });
+
+        // Login
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                if (data.user.role === 'admin') window.location.href = '/admin';
+                else window.location.href = '/dashboard';
+            } else document.getElementById('loginMsg').innerText = 'Erro: ' + data.error;
+        });
+
+        // Cadastro
+        document.getElementById('registerBtn').addEventListener('click', async () => {
+            const name = document.getElementById('regName').value;
+            const cpf = document.getElementById('regCpf').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const phone = document.getElementById('regPhone').value;
+            const area = document.getElementById('regArea').value;
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, cpf, email, password, phone, roof_area: area })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                window.location.href = '/dashboard';
+            } else document.getElementById('registerMsg').innerText = 'Erro: ' + data.error;
+        });
+    </script>
+</body>
+</html>
